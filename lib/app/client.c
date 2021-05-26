@@ -5,7 +5,8 @@
 
 void startClient(){
     bool exitVar = false;
-    char data[] = "", buffer[10];
+    char data[20], buffer[10];
+    char source, destiny, time;
 
     // Start server connection
     int socket = clientConnection();
@@ -13,11 +14,15 @@ void startClient(){
     display_welcome();
     while (!exitVar){
         // Ask for data to search
-        strcat(data, input_source_ID());
+        source = (char) input_source_ID();
+        destiny = (char) input_destiny_ID();
+        time = (char) input_daytime();
+
+        strcat(data, &source);
         strcat(data, "-");
-        strcat(data, input_destiny_ID());
+        strcat(data, &destiny);
         strcat(data, "-");
-        strcat(data, input_daytime());
+        strcat(data, &time);
 
         // Clear and ask for server response
         system("clear");

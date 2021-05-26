@@ -1,7 +1,11 @@
 #include <stdbool.h>
 #include <sys/socket.h>
+#include <pthread.h>
 #include "utils/network_connection.c"
 #include "../Structures/hash_table.c"
+
+// Global variables
+HashTable *table;
 
 /**
  * The function loadHash is used to load the needed information into the 
@@ -109,30 +113,51 @@ int searchInFile(HashTable* table, int source, int dest, int hour){
     return searchData(table,file,source,dest,hour);
 }
 
-int processQuery(HashTable* table, char query[]){
-    int source, destiny, time;
+void * processQuery(void* data){
+    int clientfd, source, destiny, time;
+    char buffer[20];
+
+    clientfd = *((int *) data);
 
     // Extract data
-    source = atoi(strtok(query,"-"));
+    recv(clientfd, buffer, 20, 0);
+    source = atoi(strtok(buffer,"-"));
     destiny = atoi(strtok(NULL, "-"));
     time = atoi(strtok(NULL, "-"));
 
-    return searchInFile(table, source, destiny, time);
+    int result = searchInFile(table, source, destiny, time);
+    send(clientfd, &result, sizeof(result), 0);
+}
+
+void acceptClients(int socket){
+    int i = 0;
+    struct sockaddr_in client;
+    pthread_t clients[32];
+    int clientSocket;
+    
+    while (true){
+        clientSocket = accept(socket, (struct sockaddr*) &client, (socklen_t*) sizeof(client));
+        if (clientSocket < 0) sendError("error al crear socket - cliente");
+        
+        printf("no problemo");
+        pthread_create(&clients[i], NULL, (void *) processQuery, (void *) &clientSocket);
+
+        if (i == 31) i = 0;
+        else i++;
+    }
+    
 }
 
 void startServer(){
-    HashTable *table = initHash();
+    table = initHash();
     char buffer [20];
-    int socket = serverConnection();
-
+    
     // Load hashtable
     loadHash(table);
 
-    // Start reading querys
-    while (true){
-        read(socket, buffer, 20);
-        int mean_time = processQuery(table, buffer);
+    // Create socket connection
+    int socket = serverConnection();
 
-        send(socket, mean_time, sizeof(mean_time), 0);
-    }
+    // Start reading querys
+    acceptClients(socket);
 }
