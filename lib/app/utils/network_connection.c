@@ -17,6 +17,14 @@ int SOCKET_DOMAIN = AF_INET, SOCKET_TYPE = SOCK_STREAM , SOCKET_PROTOCOL = 0;
 bool flags [32] = {false};
 HashTable *table;
 
+//Data structure containing clinet address
+
+struct client_data 
+{
+    char * client_address;
+    int clientfd;
+};
+
 /**
  * the function sendError is used to interrupt the program when something goes wrong
  * @param message to be printed in the error explanation
@@ -31,14 +39,18 @@ void check(int exp, const char message[]){
 }
 
 void * handleConnection(void * data){
-    int clientfd;
-    char buffer[20];
+    struct client_data * client_info;
+    int client_socket;
+    char * buffer;
 
-    clientfd = *((int *) data);
+    client_info = data;
 
-    printf("hilo iniciado con el socket %d\n", clientfd);
+    client_socket = client_info -> clientfd;
+    buffer = client_info -> client_address;
 
-    processQuery(table, clientfd);
+    printf("Hilo iniciado con el socket %d\n", client_socket);
+
+    processQuery(table, client_socket, buffer);
 }
 
 void acceptClients(int serverfd){
@@ -46,23 +58,27 @@ void acceptClients(int serverfd){
     int clientfd, client = 0;
     pthread_t pid;
     socklen_t clientSize = sizeof(clientAddress);
+    struct client_data client_info;
 
     // Recive all client connections
     printf("Esperando conexiones ...\n");
     while (true){
-        // Check if thread ended client communication
-        pthread_join(pid, NULL);
 
         // Accept new client connection
-        clientfd = accept(serverfd, (struct sockaddr *) &clientAddress, &clientSize);
+        client_info.clientfd = accept(serverfd, (struct sockaddr *) &clientAddress, &clientSize);
         check (clientfd, "error en conexión con cliente");
+
+        client_info.client_address = inet_ntoa(clientAddress.sin_addr);
 
         printf("se ha aceptado una conexión correctamente\n");
 
         // create new thread for attend new client
-        check(pid = pthread_create(&(pid), NULL, (void *) handleConnection, (void *) &clientfd), 
-            "ha ocurrido un error al crear el hilo para la conexión");
+        check(pid = pthread_create(&(pid), NULL, (void *) handleConnection, (void *) &client_info), 
+        "ha ocurrido un error al crear el hilo para la conexión");
         printf("se ha creado correctamente un hilo para el cliente \n");
+
+        // Check if thread ended client communication
+        pthread_join(pid, NULL);
 
         if (client == 31) client = 0;
         else client++;
@@ -129,4 +145,3 @@ int clientConnection(){
 
     return clientfd;
 }
- 
