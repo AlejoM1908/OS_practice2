@@ -5,17 +5,28 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <semaphore.h>
+#include <fcntl.h>
 #include <strings.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "search_data.c"
 #define PORT 3535
 #define BACKLOG 8
+#define MAX_PROCESOS 1
 
 // Program constants
 int SOCKET_DOMAIN = AF_INET, SOCKET_TYPE = SOCK_STREAM , SOCKET_PROTOCOL = 0;
 bool flags [32] = {false};
 HashTable *table;
+sem_t *semaforo;
+
+//Data structure containing clinet address
+struct client_data 
+{
+    char * client_address;
+    int clientfd;
+};
 
 /**
  * the function sendError is used to interrupt the program when something goes wrong
@@ -31,14 +42,18 @@ void check(int exp, const char message[]){
 }
 
 void * handleConnection(void * data){
-    int clientfd;
-    char buffer[20];
+    struct client_data * client_info;
+    int client_socket;
+    char * buffer;
 
-    clientfd = *((int *) data);
+    client_info = data;
 
-    printf("hilo iniciado con el socket %d\n", clientfd);
+    client_socket = client_info -> clientfd;
+    buffer = client_info -> client_address;
 
-    processQuery(table, clientfd);
+    printf("Hilo iniciado con el socket %d\n", client_socket);
+
+    processQuery(table, client_socket, buffer, semaforo);
 }
 
 void acceptClients(int serverfd){
@@ -46,23 +61,29 @@ void acceptClients(int serverfd){
     int clientfd, client = 0;
     pthread_t pid;
     socklen_t clientSize = sizeof(clientAddress);
+    struct client_data client_info;
+
+    semaforo = sem_open("semaforo_log", O_CREAT, 0700, MAX_PROCESOS);
 
     // Recive all client connections
     printf("Esperando conexiones ...\n");
     while (true){
-        // Check if thread ended client communication
-        pthread_join(pid, NULL);
 
         // Accept new client connection
-        clientfd = accept(serverfd, (struct sockaddr *) &clientAddress, &clientSize);
-        check (clientfd, "error en conexión con cliente");
+        client_info.clientfd = accept(serverfd, (struct sockaddr *) &clientAddress, &clientSize);
+        check (client_info.clientfd, "error en conexión con cliente");
+
+        client_info.client_address = inet_ntoa(clientAddress.sin_addr);
 
         printf("se ha aceptado una conexión correctamente\n");
 
         // create new thread for attend new client
-        check(pid = pthread_create(&(pid), NULL, (void *) handleConnection, (void *) &clientfd), 
-            "ha ocurrido un error al crear el hilo para la conexión");
+        check(pid = pthread_create(&(pid), NULL, (void *) handleConnection, (void *) &client_info), 
+        "ha ocurrido un error al crear el hilo para la conexión");
         printf("se ha creado correctamente un hilo para el cliente \n");
+
+        // Check if thread ended client communication
+        pthread_join(pid, NULL);
 
         if (client == 31) client = 0;
         else client++;
@@ -129,4 +150,3 @@ int clientConnection(){
 
     return clientfd;
 }
- 

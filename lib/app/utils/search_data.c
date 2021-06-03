@@ -1,4 +1,7 @@
 #include "../../Structures/hash_table.c"
+#include "network_log.c"
+#include <semaphore.h>
+#include <fcntl.h>
 
 /**
  * The function loadHash is used to load the needed information into the 
@@ -109,7 +112,7 @@ int searchInFile(HashTable* table, int source, int dest, int hour){
     return searchData(table,file,source,dest,hour);
 }
 
-void processQuery(HashTable *table, int clientfd){
+void processQuery(HashTable *table, int clientfd, char * IP_addr, sem_t *semaforo){
     int source, destiny, time;
     char buffer[13], result[5];
 
@@ -119,7 +122,7 @@ void processQuery(HashTable *table, int clientfd){
         read(clientfd, buffer, 13);
 
         if (strncmp("exit", buffer, 4) == 0){
-            printf("apagando servidor ...\n");
+            printf("Apagando servidor ...\n");
             exit(0);
         }
 
@@ -128,8 +131,11 @@ void processQuery(HashTable *table, int clientfd){
             break;
         }
 
-        printf ("recibido %s de cliente\n", buffer);
-
+        printf ("Recibido %s de cliente\n", buffer);
+        
+        //Saving the query in a .log file
+        writeLog(buffer, IP_addr, semaforo);
+        
         source = atoi(strtok(buffer,"-"));
         destiny = atoi(strtok(NULL, "-"));
         time = atoi(strtok(NULL, "-"));
@@ -137,6 +143,6 @@ void processQuery(HashTable *table, int clientfd){
         snprintf(result, 5, "%d", searchInFile(table, source, destiny, time));
         send(clientfd, result, sizeof(result), 0);
 
-        printf ("respondiendo %s a cliente\n", result);
+        printf ("Respondiendo %s a cliente\n", result);
     }
 }
