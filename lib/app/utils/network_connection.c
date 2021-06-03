@@ -5,20 +5,23 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <semaphore.h>
+#include <fcntl.h>
 #include <strings.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "search_data.c"
 #define PORT 3535
 #define BACKLOG 8
+#define MAX_PROCESOS 1
 
 // Program constants
 int SOCKET_DOMAIN = AF_INET, SOCKET_TYPE = SOCK_STREAM , SOCKET_PROTOCOL = 0;
 bool flags [32] = {false};
 HashTable *table;
+sem_t *semaforo;
 
 //Data structure containing clinet address
-
 struct client_data 
 {
     char * client_address;
@@ -50,7 +53,7 @@ void * handleConnection(void * data){
 
     printf("Hilo iniciado con el socket %d\n", client_socket);
 
-    processQuery(table, client_socket, buffer);
+    processQuery(table, client_socket, buffer, semaforo);
 }
 
 void acceptClients(int serverfd){
@@ -60,13 +63,15 @@ void acceptClients(int serverfd){
     socklen_t clientSize = sizeof(clientAddress);
     struct client_data client_info;
 
+    semaforo = sem_open("semaforo_log", O_CREAT, 0700, MAX_PROCESOS);
+
     // Recive all client connections
     printf("Esperando conexiones ...\n");
     while (true){
 
         // Accept new client connection
         client_info.clientfd = accept(serverfd, (struct sockaddr *) &clientAddress, &clientSize);
-        check (clientfd, "error en conexión con cliente");
+        check (client_info.clientfd, "error en conexión con cliente");
 
         client_info.client_address = inet_ntoa(clientAddress.sin_addr);
 

@@ -1,9 +1,12 @@
-#include "stdio.h"
+#include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <semaphore.h>
+#include <fcntl.h>
 
-void writeLog(FILE * fp, char * data, char * IP_addr)
-{
+void writeLog(char * data, char * IP_addr, sem_t *semaforo){
+    sem_wait(semaforo);
+    FILE * file = fopen("lib/data/serverQuery.log","a");
     struct tm * time_struct;
     char final_data[100] = "";
     char time_char[25] = "";
@@ -17,9 +20,10 @@ void writeLog(FILE * fp, char * data, char * IP_addr)
     strftime(time_char, 25, "[%Y-%m-%d %T]", time_struct);
     
     //File exists?
-    if (fp == NULL)
+    if (file == NULL)
     {
-        printf("\n Error leyendo el archivo.\n");
+        perror("error abrendo el archivo de log");
+        exit(1);
     }
 
     //Cat all the information
@@ -28,12 +32,13 @@ void writeLog(FILE * fp, char * data, char * IP_addr)
     strcat(final_data,IP_addr);
     strcat(final_data, "][");
     strcat(final_data,data);
-    strcat(final_data, "]");
+    strcat(final_data, "]\n");
 
     //Printing the final string
     printf("\nConsulta guardada en log: %s\n",final_data);
 
     //Writing to file
-    fprintf(fp, "%s", final_data);
-    fputs("\n",fp);
+    fprintf(file, "%s", final_data);
+    fclose(file);
+    sem_post(semaforo);
 }
