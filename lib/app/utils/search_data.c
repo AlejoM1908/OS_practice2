@@ -130,8 +130,6 @@ void processQuery(HashTable *table, int clientfd, char * IP_addr, sem_t *semafor
             printf("Desconectando cliente ...\n");
             break;
         }
-
-        printf ("Recibido %s de cliente\n", buffer);
         
         //Saving the query in a .log file
         writeLog(buffer, IP_addr, semaforo);

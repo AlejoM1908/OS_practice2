@@ -35,7 +35,7 @@ void writeLog(char * data, char * IP_addr, sem_t *semaforo){
     strcat(final_data, "]\n");
 
     //Printing the final string
-    printf("\nConsulta guardada en log: %s\n",final_data);
+    printf("\nConsulta guardada en log: %s",final_data);
 
     //Writing to file
     fprintf(file, "%s", final_data);

@@ -14,6 +14,8 @@ void startClient(){
     while (!exitVar){
         bzero(data, 13);
         bzero(buffer, 12);
+        buffer[0] = '-'; buffer[1] = '1';
+
         // Ask for data to search
         snprintf(source, 5, "%d", input_source_ID());
         snprintf(destiny, 5, "%d", input_destiny_ID());

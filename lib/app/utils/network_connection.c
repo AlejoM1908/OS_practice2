@@ -51,8 +51,6 @@ void * handleConnection(void * data){
     client_socket = client_info -> clientfd;
     buffer = client_info -> client_address;
 
-    printf("Hilo iniciado con el socket %d\n", client_socket);
-
     processQuery(table, client_socket, buffer, semaforo);
 }
 
