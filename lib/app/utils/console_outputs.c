@@ -171,3 +171,27 @@ bool exitProgram()
             return true;
     }
 }
+
+/**
+ * the funcition exitServer is used to show the opctions for poweroff the server 
+ * and compare the options select to user
+ * @return the selection of the user
+*/
+bool exitServer(){
+    char selection;
+    scanf("%c", &selection);
+    
+    while(true){
+        printf("desea apagar el servidor?(y/n)\n");
+        scanf("%c", &selection);
+        
+        if (selection != 'y' && selection != 'n'){
+            printf("su seleccion no es valida, vuelva a intentar\n");
+            continue;
+        }
+        else if(selection == 'n')
+            return false;
+        else
+            return true;
+    }
+}
